@@ -1,0 +1,22 @@
+{
+    "authors": [
+        "Andre Pany"
+    ],
+    "copyright": "Copyright © 2019, Andre Pany",
+    "description": "Coding puzzles",
+    "license": "BSL-1.0",
+    "name": "coding-puzzles",
+    "configurations": [{
+            "name": "debug",
+            "targetType": "executable",
+            "targetName": "puzz",
+            "targetPath": "bin"
+        }, {
+            "name": "unittest",
+            "targetType": "executable",
+            "targetName": "unittest",
+            "mainSourceFile": "source/cp/app.d"
+        }
+
+    ]
+}
