@@ -74,7 +74,48 @@ mixin template PuzzleBase(Input, Output)
         registerPuzzle(puzzle);
     }
 
-    Output play(Input input)
+    struct PlayResult
+    {
+        Output output;
+        alias output this;
+
+        this(Output output)
+        {
+            this.output = output;
+        }
+
+        void validate(Output expected)
+        {
+            if (expected != output)
+            {
+                throw new Exception("Validation failed");
+            }
+        }
+        
+        void validate(A...)(A a)
+            if (a.length <= __traits(allMembers, Output).length)
+        {
+            Output expected;
+            static foreach(i, fieldName; __traits(allMembers, Output))
+            {
+                __traits(getMember, expected, fieldName) = a[i];
+            }
+            validate(expected);
+        }
+    }
+
+    PlayResult play(A...)(A a)
+        if (a.length <= __traits(allMembers, Input).length)
+    {
+        Input input;
+        static foreach(i, fieldName; __traits(allMembers, Input))
+        {
+            __traits(getMember, input, fieldName) = a[i];
+        }
+        return play(input);
+    }
+
+    PlayResult play(Input input)
     {
         static foreach(fieldName; __traits(allMembers, Input))
         {{
@@ -116,10 +157,10 @@ mixin template PuzzleBase(Input, Output)
             }
         }}
 
-        return output;
+        return PlayResult(output);
     }
     
-    void validate(Output expected, Output actual)
+    void validate(Output actual, Output expected)
     {
         if (expected != actual)
         {

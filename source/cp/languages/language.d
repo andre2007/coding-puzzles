@@ -1,5 +1,6 @@
 module cp.languages.language;
 
+import cp.session;
 import cp.puzzles.puzzle;
 import cp.communicationchannel;
 
@@ -11,14 +12,14 @@ interface IfLanguage
         Puzzle puzzle, string compiler, bool forceRecompilation);
 }
 
-IfLanguage getLanguage(string language)
+IfLanguage getLanguage(IfSession session, string language)
 {
     import cp.languages.d;
     
     switch(language)
     {
         case "d":
-            return new LanguageD();
+            return new LanguageD(session);
         default:
             throw new Exception("Unknown language " ~language);
     }

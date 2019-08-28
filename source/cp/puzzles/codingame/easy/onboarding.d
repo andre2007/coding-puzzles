@@ -1,5 +1,6 @@
 module cp.puzzles.codingame.easy.onboarding;
 
+import std;
 import cp.puzzles.puzzle;
 
 class Onboarding
@@ -19,8 +20,18 @@ class Onboarding
     @Testcase
     void imminentDanger()
     {
-        Output o = play(Input("e1", 3, "e2", 4));
-        //validate(Output("e1"), o);
+        foreach(n; 1..10)
+        {
+            int i1 = uniform(0, 100);
+            int i2 = uniform(0, 100);
+            
+            while (i2 == i1)
+            {
+                i2 = uniform(0, 100);
+            }
+            
+            play("e1", i1, "e2", i2).validate(i1 < i2 ? "e1" : "e2");
+        }
     }
 }
 

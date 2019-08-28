@@ -1,17 +1,26 @@
 module cp.languages.d;
 
 import std.path: buildPath, dirName;
-import std.file : write, exists, timeLastModified;
+import std.file : exists, timeLastModified;
 import std.process : executeShell, Config;
 import std.exception : enforce;
-import std.stdio : writeln;
+import std.stdio: toFile;
 
+import cp.session;
 import cp.languages.language;
 import cp.puzzles.puzzle;
 import cp.communicationchannel;
 
 class LanguageD: IfLanguage
 {
+    private IfSession _session;
+    
+    this(IfSession session)
+    {
+        assert(session !is null);
+        _session = session;
+    }
+    
     void createPuzzle(string folder, Puzzle puzzle)
     {
         string content = "import std;\n\nvoid main()\n{\n";
@@ -23,10 +32,7 @@ class LanguageD: IfLanguage
         
         foreach(p; puzzle.inputParameters)
         {
-            if (puzzle.metadata.gameLoop)
-            {
-                content ~= "    ";
-            }
+            if (puzzle.metadata.gameLoop) content ~= "    ";
             
             if (p.type == "string")
             {
@@ -40,6 +46,13 @@ class LanguageD: IfLanguage
             }
         }
         
+        content ~= "\n";
+        if (puzzle.metadata.gameLoop) content ~= "    ";
+        content ~= "    // Implement logic here\n\n";
+        
+        if (puzzle.metadata.gameLoop) content ~= "    ";
+        content ~= "    stdout.flush();\n";
+        
         if (puzzle.metadata.gameLoop)
         {
             content ~= "    }\n";
@@ -48,8 +61,8 @@ class LanguageD: IfLanguage
         content ~= "}\n";
         
         string sourceFilePath = buildPath(folder, "app.d");
-        write(sourceFilePath, content);
-        writeln("File created: ", sourceFilePath);
+        toFile(content, sourceFilePath);
+        _session.logger.gameInfo("File created: " ~ sourceFilePath);
     }
     
     IfCommunicationChannel startSolver(string folder, 
@@ -69,7 +82,7 @@ class LanguageD: IfLanguage
         
         if (forceRecompilation || needCompilation(sourceFilePath, executableFilePath))
         {
-            writeln("Compiling " ~ sourceFilePath);
+            _session.logger.gameInfo("Compiling " ~ sourceFilePath);
             
             switch (compiler)
             {
@@ -86,7 +99,7 @@ class LanguageD: IfLanguage
         }
         else 
         {
-            writeln("Compiling not needed, actual executable existing.");
+            _session.logger.gameInfo("Compiling not needed, actual executable existing.");
         }
         return new StdioChannel(executableFilePath);
     }

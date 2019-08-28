@@ -8,13 +8,10 @@ import cp.session;
 import cp.puzzles.puzzle;
 import cp.languages.language;
 
-import std.stdio;
-
 interface IfPuzzleRuntime 
 {
     void initPuzzle(string puzzleName, string language, bool forceRecreation);
     void playPuzzle(string puzzleName, string language, string compiler, bool forceRecompilation);
-    
 }
 
 class PuzzleRuntime : IfPuzzleRuntime
@@ -44,20 +41,20 @@ class PuzzleRuntime : IfPuzzleRuntime
 
         mkdirRecurse(puzzleLanguageFolder);
         auto puzzle = getPuzzle(puzzleName);
-        auto lang = getLanguage(language);
+        auto lang = getLanguage(_session, language);
         lang.createPuzzle(puzzleLanguageFolder, puzzle);
     }
     
     void playPuzzle(string puzzleName, string language, string compiler, bool forceRecompilation)
     {
-        writeln("Play puzzle " ~ puzzleName);
+        _session.logger.gameInfo("Play puzzle " ~ puzzleName);
         
         string puzzleLanguageFolder = buildPath(getPuzzleFolder(puzzleName), language);
         enforce(exists(puzzleLanguageFolder), 
             "Puzzle " ~ puzzleName ~ " not exists for language " ~ language);
 
         auto puzzle = getPuzzle(puzzleName);
-        auto lang = getLanguage(language);
+        auto lang = getLanguage(_session, language);
         auto commChannel = lang.startSolver(puzzleLanguageFolder, puzzle, compiler, forceRecompilation);
 
         Object testObject = puzzle.create();
@@ -70,15 +67,15 @@ class PuzzleRuntime : IfPuzzleRuntime
             
             foreach(name; puzzle.testcases)
             {
-                writeln("Run testcase " ~ name);
+                _session.logger.gameInfo("Run testcase " ~ name);
                 puzzle.testcase(testObject, name);
             }
+            
+            _session.logger.gameInfo("Success");
         }
-        catch (Exception e)
+        finally
         {
-            writeln("Exception occurred, try to receive debug data");
-            //writeln(.receiveDebug());
-            throw e;
+            commChannel.closeChannel();
         }
     }
 

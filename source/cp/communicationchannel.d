@@ -4,8 +4,9 @@ import std.process;
 import std.array : join;
 import std.file : exists;
 import std.exception : enforce;
-import std.stdio: stdout;
+import std.stdio: stdout, File;
 import std.string: strip;
+import std.concurrency: Tid, send, spawn, receiveTimeout, thisTid;
 
 interface IfCommunicationChannel
 {
@@ -46,7 +47,7 @@ class StdioChannel : IfCommunicationChannel
     
     string receiveData()
     {
-        return _processPipes.stdout.readln().strip;
+        return (_processPipes.stdout.size == 0) ? "" : _processPipes.stdout.readln().strip;
     }
     
     string receiveDebug()
@@ -58,7 +59,14 @@ class StdioChannel : IfCommunicationChannel
     }
     
     void closeChannel()
-    {
-        kill(_processPipes.pid);
+    {       
+        // This logic avoid the druntime MessageBox (Win api) if exception occurs
+        _processPipes.stdin.close;
+        //_processPipes.stderr.byLineCopy.writeln;
+        try
+        {
+            _processPipes.pid.kill; 
+            _processPipes.pid.wait;
+        } catch (Throwable) { }
     }
 }
