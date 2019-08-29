@@ -22,7 +22,7 @@ class Logger : IfLogger
     
     void gameInfo(string s)
     {
-        writeln("G: ", s);
+        writeln(s);
     }
     
     void gameDebug(string s)
@@ -33,11 +33,11 @@ class Logger : IfLogger
     
     void puzzleOut(string s)
     {
-        writeln("puzzleOut: ", s);
+        writeln(" out >> ", s);
     }
     
     void puzzleErr(string s)
     {
-        writeln("puzzleErr: ", s);
+        writeln(" err >> : ", s);
     }
 }

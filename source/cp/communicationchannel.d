@@ -4,9 +4,7 @@ import std.process;
 import std.array : join;
 import std.file : exists;
 import std.exception : enforce;
-import std.stdio: stdout, File;
 import std.string: strip;
-import std.concurrency: Tid, send, spawn, receiveTimeout, thisTid;
 
 interface IfCommunicationChannel
 {

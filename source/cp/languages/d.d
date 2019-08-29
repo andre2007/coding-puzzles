@@ -5,6 +5,7 @@ import std.file : exists, timeLastModified;
 import std.process : executeShell, Config;
 import std.exception : enforce;
 import std.stdio: toFile;
+import std.conv : to;
 
 import cp.session;
 import cp.languages.language;
@@ -23,45 +24,66 @@ class LanguageD: IfLanguage
     
     void createPuzzle(string folder, Puzzle puzzle)
     {
-        string content = "import std;\n\nvoid main()\n{\n";
-        
+        auto sc = new SourceCode();
+        sc.addLine("import std;");
+        sc.addEmptyLine();
+        sc.addLine("void main()");
+        sc.addLine("{");
+        sc.increaseIndent();
+
         if (puzzle.metadata.gameLoop)
         {
-            content ~= "    while(true)\n    {\n";
+            sc.addLine("while(true)");
+            sc.addLine("{");
+            sc.increaseIndent();
         }
         
-        foreach(p; puzzle.inputParameters)
+        foreach(i, p; puzzle.inputParameters)
         {
-            if (puzzle.metadata.gameLoop) content ~= "    ";
+            if (p.counter > 1)
+            {
+                sc.addLine("foreach (n; 0.." ~ p.counter.to!string ~ ")");
+                sc.addLine("{");
+                sc.increaseIndent();
+            }
             
             if (p.type == "string")
             {
-                content ~= "    string " ~ p.name 
-                    ~ " = readln.strip;\n";
+                sc.addLine("string " ~ p.name ~ " = readln.strip;");
             }
             else if (p.type == "int")
             {
-                content  ~= "    int " ~ p.name 
-                    ~ " = to!int(readln.strip);\n";
+                sc.addLine("int " ~ p.name ~ " = to!int(readln.strip);");
+            }
+            
+            if (p.counter > 1)
+            {
+                sc.decreaseIndent();
+                sc.addLine("}");
+                sc.addEmptyLine();
+            }
+            else
+            {
+                if (i == puzzle.inputParameters.length -1)
+                    sc.addEmptyLine();
             }
         }
         
-        content ~= "\n";
-        if (puzzle.metadata.gameLoop) content ~= "    ";
-        content ~= "    // Implement logic here\n\n";
-        
-        if (puzzle.metadata.gameLoop) content ~= "    ";
-        content ~= "    stdout.flush();\n";
+        sc.addLine("// Implement logic here");
+        sc.addEmptyLine();
+        sc.addLine("stdout.flush();");
         
         if (puzzle.metadata.gameLoop)
         {
-            content ~= "    }\n";
+            sc.decreaseIndent();
+            sc.addLine("}");
         }
         
-        content ~= "}\n";
+        sc.decreaseIndent();
+        sc.addLine("}");
         
         string sourceFilePath = buildPath(folder, "app.d");
-        toFile(content, sourceFilePath);
+        toFile(sc.content, sourceFilePath);
         _session.logger.gameInfo("File created: " ~ sourceFilePath);
     }
     
