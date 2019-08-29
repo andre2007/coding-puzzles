@@ -1,7 +1,10 @@
 module cp.tasks.listpuzzles;
 
+import std.stdio : writeln;
+
 import cp.session;
 import cp.tasks.task;
+import cp.puzzles.puzzle;
 
 class ListPuzzlesTask: IfTask
 {
@@ -10,7 +13,7 @@ class ListPuzzlesTask: IfTask
 		TaskDescription result = {
 			command : "list",
 			description : "List puzzles",
-			example : "puzz list -p cg.easy.Onboarding",
+			example : "puzz list",
 			arguments : []
 		};
 		return result;
@@ -23,5 +26,12 @@ class ListPuzzlesTask: IfTask
 	
 	void execute(string[] args)
 	{
+		writeln("Puzzles:\n");
+		
+		foreach(p; getPuzzles())
+		{
+			writeln("    " ~ p.metadata.name);
+		}
+		
 	}
 }

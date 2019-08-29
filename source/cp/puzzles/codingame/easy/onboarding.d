@@ -10,7 +10,7 @@ class Onboarding
     static PuzzleMetadata metadata()
     {
         PuzzleMetadata metadata = {
-            name : "cg.easy.Onboarding",
+            name : "cg.easy.onboarding",
             description : "https://www.codingame.com/ide/puzzle/onboarding",
             gameLoop : true
         };
@@ -20,7 +20,7 @@ class Onboarding
     @Testcase
     void imminentDanger()
     {
-        foreach(n; 1..10)
+        foreach(n; 0..10)
         {
             int i1 = uniform(0, 100);
             int i2 = uniform(0, 100);

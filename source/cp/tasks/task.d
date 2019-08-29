@@ -24,9 +24,9 @@ interface IfTask
 
 IfTask[] getTasks(IfSession session)
 {
-	import cp.tasks.initpuzzle;
-	import cp.tasks.playpuzzle;
-	import cp.tasks.listpuzzles;
+	import cp.tasks.initpuzzle : InitPuzzleTask;
+	import cp.tasks.playpuzzle : PlayPuzzleTask;
+	import cp.tasks.listpuzzles : ListPuzzlesTask;
 	
 	return [cast(IfTask) new InitPuzzleTask(session), 
 			cast(IfTask) new PlayPuzzleTask(session), 
