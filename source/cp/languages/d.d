@@ -6,6 +6,7 @@ import std.process : executeShell, Config;
 import std.exception : enforce;
 import std.stdio: toFile;
 import std.conv : to;
+import std.algorithm : among;
 
 import cp.session;
 import cp.languages.language;
@@ -40,9 +41,15 @@ class LanguageD: IfLanguage
         
         foreach(i, p; puzzle.inputParameters)
         {
-            if (p.counter > 1)
+            if (p.lengthRef != "")
             {
-                sc.addLine("foreach (n; 0.." ~ p.counter.to!string ~ ")");
+                sc.addLine("foreach (n; 0.." ~ p.lengthRef ~ ")");
+                sc.addLine("{");
+                sc.increaseIndent();
+            }
+            else if (p.length > 1)
+            {
+                sc.addLine("foreach (n; 0.." ~ p.length.to!string ~ ")");
                 sc.addLine("{");
                 sc.increaseIndent();
             }
@@ -51,12 +58,12 @@ class LanguageD: IfLanguage
             {
                 sc.addLine("string " ~ p.name ~ " = readln.strip;");
             }
-            else if (p.type == "int")
+            else if (p.type.among("int", "uint", "long", "ulong"))
             {
-                sc.addLine("int " ~ p.name ~ " = to!int(readln.strip);");
+                sc.addLine(p.type ~ " " ~ p.name ~ " = to!" ~ p.type ~ "(readln.strip);");
             }
             
-            if (p.counter > 1)
+            if (p.lengthRef != "" || p.length > 1)
             {
                 sc.decreaseIndent();
                 sc.addLine("}");

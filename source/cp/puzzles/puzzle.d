@@ -1,6 +1,5 @@
 module cp.puzzles.puzzle;
 
-import std.exception : enforce;
 import std.algorithm;
 import std.traits : hasUDA, getUDAs, isArray;
 
@@ -9,16 +8,22 @@ import cp.communicationchannel;
 
 enum Testcase;
 
-struct Counter
+struct Length
 {
     size_t value;
+}
+
+struct LengthRef
+{
+    string name;
 }
 
 struct Parameter
 {
     string name;
     string type;
-    size_t counter;
+    size_t length;
+    string lengthRef;
 }
 
 struct PuzzleMetadata
@@ -26,6 +31,19 @@ struct PuzzleMetadata
     string name;
     string description;
     bool gameLoop;
+}
+
+class ConfigSet
+{
+    void setLength(size_t length)
+    {
+    }
+    
+    void setFirstValueTimeout(int i)
+    {
+    }
+    
+    
 }
 
 mixin template PuzzleBase(Input, Output)
@@ -38,6 +56,7 @@ mixin template PuzzleBase(Input, Output)
     
     private IfCommunicationChannel _communicationChannel;
     private IfSession _session;
+    private OutputPropertyConfig[string] _outputPropertiesConfigMap;
     
     private static this()
     {
@@ -79,6 +98,21 @@ mixin template PuzzleBase(Input, Output)
         }
         
         registerPuzzle(puzzle);
+    }
+
+    struct OutputPropertyConfig
+    {
+        size_t length;
+    }
+
+    OutputPropertyConfig* outputProperty(string s)
+    {
+        if (s !in _outputPropertiesConfigMap)
+        {
+            _outputPropertiesConfigMap[s] = OutputPropertyConfig();
+        }
+        
+        return s in _outputPropertiesConfigMap;
     }
 
     struct PlayResult
@@ -128,28 +162,32 @@ mixin template PuzzleBase(Input, Output)
         {{
             alias field = __traits(getMember, input, fieldName);
             
-            static if(is(typeof(__traits(getMember,input, fieldName)) == int) || is(typeof(__traits(getMember,input, fieldName)) == long))
+            static if(is(typeof(field) == int) || is(typeof(field) == uint) ||
+                is(typeof(field) == long) || is(typeof(field) == ulong))
             {
                 string value = to!string(__traits(getMember, input, fieldName));
-                _session.logger.gameDebug("Sent input '" ~ fieldName ~ "' value '" ~ value ~ "'");
+                _session.logger.puzzleIn("Sent input '" ~ fieldName ~ "' value '" ~ value ~ "'");
                 _communicationChannel.sentData(value);
             } 
-            else static if(is(typeof(__traits(getMember, input, fieldName)) == string))
+            else static if(is(typeof(field) == string))
             {
                 string value = __traits(getMember, input, fieldName);
-                _session.logger.gameDebug("Sent input '" ~ fieldName ~ "' value '" ~ value ~ "'");
+                _session.logger.puzzleIn("Sent input '" ~ fieldName ~ "' value '" ~ value ~ "'");
                 _communicationChannel.sentData(value);
             }
             else static if (isArray!(typeof(field)))
             {
-                _session.logger.gameDebug("Sent array input '" ~ fieldName);
+                _session.logger.puzzleIn("Sent array input '" ~ fieldName);
                 
-                static if(is(BaseTypeOf!(typeof(field)) == int) || is(BaseTypeOf!(typeof(field)) == long))
+                static if(is(BaseTypeOf!(typeof(field)) == int) || 
+                    is(BaseTypeOf!(typeof(field)) == uint) ||
+                    is(BaseTypeOf!(typeof(field)) == long) ||
+                    is(BaseTypeOf!(typeof(field)) == ulong))
                 {
                     foreach(i; __traits(getMember, input, fieldName))
                     {
                         string value = to!string(i);
-                        _session.logger.gameDebug("  Sent value '" ~ value ~ "'");
+                        _session.logger.puzzleIn("  Sent value '" ~ value ~ "'");
                         _communicationChannel.sentData(value);
                     }
 
@@ -158,18 +196,20 @@ mixin template PuzzleBase(Input, Output)
                 {
                     foreach(value; __traits(getMember, input, fieldName))
                     {
-                        _session.logger.gameDebug("  Sent value '" ~ value ~ "'");
+                        _session.logger.puzzleIn("  Sent value '" ~ value ~ "'");
                         _communicationChannel.sentData(value);
                     }
                 }
                 else
                 {
-                    static assert(false, "Unsupported type: " ~ typeid(typeof(field)));
+                    static assert(false, "Unsupported type: " 
+                        ~ typeof(field).stringof);
                 }
             }
             else
             {
-                static assert(false, "Unsupported type: " ~ typeid(typeof(field)));
+                static assert(false, "Unsupported type: " 
+                    ~ typeof(field).stringof);
             }
         }}
 
@@ -183,17 +223,55 @@ mixin template PuzzleBase(Input, Output)
 
         static foreach(fieldName; __traits(allMembers, Output))
         {{
-            static if(is(typeof(__traits(getMember, output, fieldName)) == int) || is(typeof(__traits(getMember, output, fieldName)) == long))
+            alias field = __traits(getMember, output, fieldName);
+            
+            static if(is(typeof(field) == int) || is(typeof(field) == uint) ||
+                is(typeof(field) == long) || is(typeof(field) == ulong))
             {
                 string value = _communicationChannel.receiveData();
-                _session.logger.gameDebug("Receive output '" ~ fieldName ~ "' value '" ~ value ~ "'");
+                _session.logger.puzzleOut("Receive output '" ~ fieldName ~ "' value '" ~ value ~ "'");
                 __traits(getMember, output, fieldName) = to!(typeof(__traits(getMember, output, fieldName)))(value);
             }
-            else static if(is(typeof(__traits(getMember, output, fieldName)) == string))
+            else static if(is(typeof(field) == string))
             {
                 string value = _communicationChannel.receiveData();
-                _session.logger.gameDebug("Receive output '" ~ fieldName ~ "' value '" ~ value ~ "'");
+                _session.logger.puzzleOut("Receive output '" ~ fieldName ~ "' value '" ~ value ~ "'");
                 __traits(getMember, output, fieldName) = value;
+            }
+            else static if (isArray!(typeof(field)))
+            {
+                static if(is(BaseTypeOf!(typeof(field)) == string))
+                {
+                    import std.ascii : newline;
+                    
+                    string[] values;
+
+                    foreach(n; 0..outputProperty(fieldName).length)
+                    {
+                        if (values.length == 0)
+                        {
+                             values = _communicationChannel.receiveData().split(newline);
+                        }
+                        
+                        if (values.length > 0)
+                        {
+                            string value = values[0];
+                            values = values[1..$];
+                            _session.logger.puzzleOut("Receive array output '" ~ fieldName ~ "' value '" ~ value ~ "'");
+                            __traits(getMember, output, fieldName) ~= value;
+                        }
+                    }
+                }
+                else
+                {
+                    static assert(false, "Unsupported type: " 
+                        ~ typeof(field).stringof);
+                }
+            }
+            else
+            {
+                static assert(false, "Unsupported type: " 
+                        ~ typeof(field).stringof);
             }
         }}
 
@@ -281,7 +359,7 @@ Puzzle getPuzzle(string puzzleName)
 
 template BaseTypeOf(T) {
     static if (is(T : U[], U))
-        alias BaseTypeOf = BaseTypeOf!(U);
+        alias BaseTypeOf = U;
     else
         alias BaseTypeOf = T;
 }
@@ -317,20 +395,26 @@ Parameter[] getParameters(T)()
         }
         else static if(isDynamicArray!(typeof(field)))
         {
-            size_t counter = 1;
+            size_t length = 1;
+            string lengthRef;
             
-            static if(hasUDA!(field,Counter))
+            static if(hasUDA!(field, Length))
             {
-                counter = getUDAs!(field, Counter)[0].value;
+                length = getUDAs!(field, Length)[0].value;
+            }
+            else static if(hasUDA!(field, LengthRef))
+            {
+                length = 0;
+                lengthRef = getUDAs!(field, LengthRef)[0].name;
             }
             
             static if(is(BaseTypeOf!(typeof(field)) == int))
             {
-                results ~= Parameter(fieldName, "int", counter);
+                results ~= Parameter(fieldName, "int", length, lengthRef);
             }
             else static if(is(BaseTypeOf!(typeof(field)) == string))
             {
-                results ~= Parameter(fieldName, "string", counter);
+                results ~= Parameter(fieldName, "string", length, lengthRef);
             }
         }
 
