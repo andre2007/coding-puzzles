@@ -19,7 +19,12 @@ class CommandLine
     {
         if (args.length == 0)
         {
-            writeln("No command provided");
+            writeln("*** Coding Puzzles Help ***");
+            writeln("To list available puzzles enter:");
+            writeln("puzz list");
+            writeln();
+            writeln(`Execute "puzz init onboarding" to create source code skeleton for onboarding example.`);
+            writeln(`Edit source code file and execute "puzz play onboarding" to validate solution.`);
             return 1;
         }
         

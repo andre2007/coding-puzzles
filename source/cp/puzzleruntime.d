@@ -25,8 +25,11 @@ class PuzzleRuntime : IfPuzzleRuntime
     
     void initPuzzle(string puzzleName, string language, bool forceRecreation)
     {
-        string puzzleLanguageFolder = buildPath(getPuzzleFolder(puzzleName), language);
-        
+        auto puzzle = getPuzzle(puzzleName);
+        _session.logger.gameInfo("Init puzzle " ~ puzzle.metadata.name ~ " for language " ~ language);
+
+        string puzzleLanguageFolder = buildPath(getPuzzleFolder(puzzle.metadata.name), language);
+
         if (exists(puzzleLanguageFolder))
         {
             if (forceRecreation)
@@ -35,25 +38,24 @@ class PuzzleRuntime : IfPuzzleRuntime
             }
             else
             {
-                throw new Exception ("Puzzle " ~ puzzleName ~ " already exists for language " ~ language);
+                throw new Exception ("Puzzle " ~ puzzle.metadata.name ~ " already exists for language " ~ language);
             }
         }
 
         mkdirRecurse(puzzleLanguageFolder);
-        auto puzzle = getPuzzle(puzzleName);
         auto lang = getLanguage(_session, language);
         lang.createPuzzle(puzzleLanguageFolder, puzzle);
     }
     
     void playPuzzle(string puzzleName, string language, string compiler, bool forceRecompilation)
     {
-        _session.logger.gameInfo("Play puzzle " ~ puzzleName);
-        
-        string puzzleLanguageFolder = buildPath(getPuzzleFolder(puzzleName), language);
-        enforce(exists(puzzleLanguageFolder), 
-            "Puzzle " ~ puzzleName ~ " not exists for language " ~ language);
-
         auto puzzle = getPuzzle(puzzleName);
+        _session.logger.gameInfo("Play puzzle " ~ puzzle.metadata.name);
+
+        string puzzleLanguageFolder = buildPath(getPuzzleFolder(puzzle.metadata.name), language);
+        enforce(exists(puzzleLanguageFolder), 
+            "Puzzle " ~ puzzle.metadata.name ~ " not exists for language " ~ language);
+
         auto lang = getLanguage(_session, language);
         auto commChannel = lang.startSolver(puzzleLanguageFolder, puzzle, compiler, forceRecompilation);
 
@@ -90,8 +92,8 @@ class PuzzleRuntime : IfPuzzleRuntime
     private string getPuzzleFolder(string puzzleName)
     {
         import std.file : thisExePath;
-        
+
         return buildPath(dirName(thisExePath), "puzzles", puzzleName);
     }
-        
+
 }
