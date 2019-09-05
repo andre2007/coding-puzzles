@@ -60,23 +60,31 @@ class PuzzleRuntime : IfPuzzleRuntime
         Object testObject = puzzle.create();
         puzzle.setSession(testObject, _session);
         puzzle.setCommunicationChannel(testObject, commChannel);
-
-        try
+  
+        foreach(name; puzzle.testcases)
         {
-            commChannel.openChannel();
-            
-            foreach(name; puzzle.testcases)
+            try
             {
+                commChannel.openChannel();
                 _session.logger.gameInfo("Run testcase " ~ name);
                 puzzle.testcase(testObject, name);
+                
+                string debugOutput = commChannel.receiveDebug();
+                if (debugOutput != "")
+                {
+                    _session.logger.puzzleErr(debugOutput);
+                }
+                
+                _session.logger.gameInfo("Testcase " ~ name  ~ " succeeded.\n");
+                
             }
-            
-            _session.logger.gameInfo("Success");
+            finally
+            {
+                commChannel.closeChannel();
+            }
         }
-        finally
-        {
-            commChannel.closeChannel();
-        }
+        
+        _session.logger.gameInfo("All testcases succeeded");
     }
 
     private string getPuzzleFolder(string puzzleName)

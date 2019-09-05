@@ -45,15 +45,44 @@ class StdioChannel : IfCommunicationChannel
     
     string receiveData()
     {
-        return (_processPipes.stdout.size == 0) ? "" : _processPipes.stdout.readln().strip;
+        if (_processPipes.stdout.size == 0)
+        {
+            return "";
+        }
+        else
+        {
+            auto buffer = new char[1024];
+            string result;
+            
+            do
+            {
+                auto data = _processPipes.stdout.rawRead(buffer);
+                result ~= data.idup.strip;
+            } while (_processPipes.stdout.size > 0);
+            
+            return result;
+        }
     }
     
     string receiveDebug()
     {
-        string[] output;
-        foreach (line; _processPipes.stderr.byLine)
-            output ~= line.idup;
-        return output.join("\n");
+        if (_processPipes.stderr.size == 0)
+        {
+            return "";
+        }
+        else
+        {
+            auto buffer = new char[1024];
+            string result;
+            
+            do
+            {
+                auto data = _processPipes.stderr.rawRead(buffer);
+                result ~= data.idup.strip;
+            } while (_processPipes.stderr.size > 0);
+            
+            return result;
+        }
     }
     
     void closeChannel()
