@@ -10,7 +10,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Install dmd
-      run: curl -fsS https://dlang.org/install.sh | bash -s dmd
+      run: curl -fsS https://dlang.org/install.sh | bash -s dmd-2.088.0
     - name: Setup dmd
       run: source ~/dlang/dmd-2.088.0/activate
     - name: Build dub package
