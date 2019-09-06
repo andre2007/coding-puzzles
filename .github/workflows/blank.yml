@@ -1,0 +1,15 @@
+name: CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install dmd
+      run: curl -fsS https://dlang.org/install.sh | bash -s dmd
+    - name: Build dub package
+      run: dub build
