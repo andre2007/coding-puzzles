@@ -22,6 +22,36 @@ class RobberyOptimisation
     {        
         play(5, [1, 15, 10, 13, 16]).validate(31);
     }
+    
+    @Testcase
+    void threeHousesOne()
+    {
+        play(3, [1, 2, 3]).validate(4);
+    }
+    
+    @Testcase
+    void threeHousesTwo()
+    {
+        play(3, [1, 5, 2]).validate(5);
+    }
+    
+    @Testcase
+    void nineIdenticalHouses()
+    {
+        play(9, [10, 10, 10, 10, 10, 10, 10, 10, 10]).validate(50);
+    }
+    
+    @Testcase
+    void oneHouse()
+    {
+        play(1, [5]).validate(5);
+    }
+    
+    @Testcase
+    void dontJustAlternateHouses()
+    {
+        play(5, [1, 15, 10, 13, 16]).validate(31);
+    }
 }
 
 private struct Input

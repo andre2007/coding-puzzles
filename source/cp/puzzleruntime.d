@@ -63,13 +63,13 @@ class PuzzleRuntime : IfPuzzleRuntime
         puzzle.setSession(testObject, _session);
         puzzle.setCommunicationChannel(testObject, commChannel);
   
-        foreach(name; puzzle.testcases)
+        foreach(testcase; puzzle.testcases)
         {
             try
             {
                 commChannel.openChannel();
-                _session.logger.gameInfo("Run testcase " ~ name);
-                puzzle.testcase(testObject, name);
+                _session.logger.gameInfo("Run testcase `" ~ testcase.description  ~ "`");
+                puzzle.testcase(testObject, testcase.name);
                 
                 string debugOutput = commChannel.receiveDebug();
                 if (debugOutput != "")
@@ -77,7 +77,7 @@ class PuzzleRuntime : IfPuzzleRuntime
                     _session.logger.puzzleErr(debugOutput);
                 }
                 
-                _session.logger.gameInfo("Testcase " ~ name  ~ " succeeded.\n");
+                _session.logger.gameInfo("Testcase `" ~ testcase.description  ~ "` succeeded.\n");
                 
             }
             finally
