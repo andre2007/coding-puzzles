@@ -3,7 +3,7 @@
         "Andre Pany"
     ],
     "copyright": "Copyright © 2019, Andre Pany",
-    "description": "Coding puzzles",
+    "description": "Coding Puzzles",
     "license": "BSL-1.0",
     "name": "coding-puzzles",
     "configurations": [{
@@ -16,7 +16,16 @@
             "targetType": "executable",
             "targetName": "unittest",
             "mainSourceFile": "source/cp/app.d"
+        }, {
+            "name": "production",
+            "targetType": "executable",
+            "targetName": "puzz",
+            "mainSourceFile": "source/cp/app.d",
+            "postBuildCommands": ["dub .pipeline/createpuzzlesmd.d bin/puzz PUZZLES.md"]
+        }, {
+            "name": "library",
+            "targetType": "staticLibrary",
+            "excludedSourceFiles": ["source/cp/app.d"]
         }
-
     ]
 }

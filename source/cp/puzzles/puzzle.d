@@ -1,6 +1,7 @@
 module cp.puzzles.puzzle;
 
 import std.algorithm;
+import std.array : split;
 import std.traits : hasUDA, getUDAs, isArray;
 
 import cp.session;
@@ -351,8 +352,16 @@ Puzzle getPuzzle(string puzzleName)
 {
     foreach(p; _puzzles)
     {
-        if (p.metadata.name == puzzleName)
-            return p;
+        if (!puzzleName.canFind("."))
+        {
+            if (p.metadata.name.split(".")[$-1] == puzzleName)
+                return p;
+        }
+        else
+        {
+            if (p.metadata.name == puzzleName)
+                return p;
+        }
     }
     throw new Exception("Puzzle not found '" ~ puzzleName ~ "'");
 }

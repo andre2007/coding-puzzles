@@ -4,11 +4,21 @@ import cp.cmdline;
 import cp.kernel;
 import cp.session;
 
-IfKernel _kernel;
-
-int main(string[] args)
+version(unittest)
 {
-	_kernel = Kernel.create();
-	
-	return new CommandLine(_kernel.session).execute(args[1..$]);
+    int main(string[] args)
+    {
+        return 0;
+    }
 }
+else
+{
+    IfKernel _kernel;
+
+    int main(string[] args)
+    {
+        _kernel = Kernel.create();
+        return new CommandLine(_kernel.session).execute(args[1..$]);
+    }
+}
+

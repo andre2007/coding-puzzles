@@ -7,9 +7,10 @@ jobs:
 
     runs-on: ubuntu-latest
     
+    container:
+      image: dlang2/dmd-ubuntu:latest
+    
     steps:
     - uses: actions/checkout@v1
-    - name: Install dmd
-      run: curl -fsS https://dlang.org/install.sh | bash -s dmd-2.088.0
-    - name: Build dub package
-      run: source ~/dlang/dmd-2.088.0/activate && dub build
+    - name: Test
+      run: dub test

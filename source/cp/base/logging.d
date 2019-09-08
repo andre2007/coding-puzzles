@@ -34,12 +34,14 @@ class Logger : IfLogger
     
     void puzzleIn(string s)
     {
-        writeln("  in >> ", s);
+        if (_debug)
+            writeln("  in >> ", s);
     }
     
     void puzzleOut(string s)
     {
-        writeln("  out >> ", s);
+        if (_debug)
+            writeln("  out >> ", s);
     }
     
     void puzzleErr(string s)
