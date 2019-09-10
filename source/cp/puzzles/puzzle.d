@@ -7,7 +7,10 @@ import std.traits : hasUDA, getUDAs, isArray;
 import cp.session;
 import cp.communicationchannel;
 
-enum Testcase;
+struct Testcase
+{
+    string name;
+}
 
 struct Length
 {
@@ -17,6 +20,12 @@ struct Length
 struct LengthRef
 {
     string name;
+}
+
+struct TestcaseMetadata
+{
+    string name;
+    string description;
 }
 
 struct Parameter
@@ -32,19 +41,6 @@ struct PuzzleMetadata
     string name;
     string description;
     bool gameLoop;
-}
-
-class ConfigSet
-{
-    void setLength(size_t length)
-    {
-    }
-    
-    void setFirstValueTimeout(int i)
-    {
-    }
-    
-    
 }
 
 mixin template PuzzleBase(Input, Output)
@@ -84,7 +80,7 @@ mixin template PuzzleBase(Input, Output)
         }
         
         Puzzle puzzle;
-        puzzle.name = this.classinfo.name;
+        puzzle.className = this.classinfo.name;
         puzzle.create = &create;
         puzzle.testcase = &testcase;
         puzzle.testcases = getTestcases!(typeof(this))();
@@ -231,12 +227,14 @@ mixin template PuzzleBase(Input, Output)
             {
                 string value = _communicationChannel.receiveData();
                 _session.logger.puzzleOut("Receive output '" ~ fieldName ~ "' value '" ~ value ~ "'");
+                enforce(value != "", "Cannot read output for field '" ~ fieldName ~ "'");
                 __traits(getMember, output, fieldName) = to!(typeof(__traits(getMember, output, fieldName)))(value);
             }
             else static if(is(typeof(field) == string))
             {
                 string value = _communicationChannel.receiveData();
                 _session.logger.puzzleOut("Receive output '" ~ fieldName ~ "' value '" ~ value ~ "'");
+                enforce(value != "", "Cannot read output for field '" ~ fieldName ~ "'");
                 __traits(getMember, output, fieldName) = value;
             }
             else static if (isArray!(typeof(field)))
@@ -259,6 +257,7 @@ mixin template PuzzleBase(Input, Output)
                             string value = values[0];
                             values = values[1..$];
                             _session.logger.puzzleOut("Receive array output '" ~ fieldName ~ "' value '" ~ value ~ "'");
+                            // enforce(value != "", "Cannot read output for field '" ~ fieldName ~ "'");
                             __traits(getMember, output, fieldName) ~= value;
                         }
                     }
@@ -320,12 +319,12 @@ mixin template PuzzleBase(Input, Output)
 
 struct Puzzle
 {
-    string name;
+    string className;
     Object function() create;
     void delegate(Object o, string test) testcase;
     void delegate(Object o, IfCommunicationChannel communicationChannel) setCommunicationChannel;
     void delegate(Object o, IfSession session) setSession;
-    string[] testcases;
+    TestcaseMetadata[] testcases;
     Parameter[] inputParameters;
     Parameter[] outputParameters;
     PuzzleMetadata metadata;
@@ -431,16 +430,20 @@ Parameter[] getParameters(T)()
     return results;
 }
 
-string[] getTestcases(T)()
+TestcaseMetadata[] getTestcases(T)()
 {
-    import std.traits: hasUDA;
+    TestcaseMetadata[] results;
 
-    string[] results;
     static foreach(fieldName; __traits(allMembers, T))
     {
-        static if(hasUDA!(__traits(getMember, T, fieldName), Testcase))
+        static if (hasUDA!(__traits(getMember, T, fieldName), Testcase ))
         {
-            results ~= fieldName;
+          static if (is (getUDAs!(__traits(getMember, T, fieldName), Testcase)[0]))
+          {
+              results ~= TestcaseMetadata(fieldName, fieldName);
+          } else {
+              results ~= TestcaseMetadata(fieldName, getUDAs!(__traits(getMember, T, fieldName), Testcase)[0].name);
+          }
         }
     }
     return results;
