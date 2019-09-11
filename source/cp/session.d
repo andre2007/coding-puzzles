@@ -15,7 +15,6 @@ class Session : IfSession
     this()
     {
         _logger = new Logger();
-        _logger.setDebug(true);
     }
     
     @property IfLogger logger()

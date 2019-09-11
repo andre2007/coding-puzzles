@@ -10,7 +10,8 @@
             "name": "debug",
             "targetType": "executable",
             "targetName": "puzz",
-            "targetPath": "bin"
+            "targetPath": "bin",
+            "excludedSourceFiles": ["source/cp/tests/*"]
         }, {
             "name": "unittest",
             "targetType": "executable",
@@ -20,12 +21,12 @@
             "name": "production",
             "targetType": "executable",
             "targetName": "puzz",
-            "mainSourceFile": "source/cp/app.d",
+            "excludedSourceFiles": ["source/cp/tests/*"],
             "postBuildCommands": ["dub .pipeline/createpuzzlesmd.d bin/puzz PUZZLES.md"]
         }, {
             "name": "library",
             "targetType": "staticLibrary",
-            "excludedSourceFiles": ["source/cp/app.d"]
+            "excludedSourceFiles": ["source/cp/app.d", "source/cp/tests/"]
         }
     ]
 }
