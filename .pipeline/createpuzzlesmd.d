@@ -21,7 +21,7 @@ void main(string[] args)
     string result = "Available puzzles: \n";
     foreach(jsPuzzle; jsRoot["puzzles"].array)
     {
-        result ~= "- " ~ jsPuzzle["name"].str ~"\n\n  " ~ jsPuzzle["description"].str ~ "\n";
+        result ~= "- " ~ jsPuzzle["name"].str ~"\n\n  " ~ jsPuzzle["description"].str ~ "\n\n";
     }
     
     result.toFile(markdownFilePath);

@@ -91,9 +91,16 @@ class PuzzleRuntime : IfPuzzleRuntime
 
     private string getPuzzleFolder(string puzzleName)
     {
-        import std.file : thisExePath;
-
-        return buildPath(dirName(thisExePath), "puzzles", puzzleName);
+        import std.process : environment;
+        
+        version (Windows)
+        {
+            return buildPath(environment.get("USERPROFILE"), "coding-puzzles", puzzleName);
+        }
+        else version (Posix)
+        {
+            return buildPath(environment.get("HOME"), "coding-puzzles", puzzleName);
+        }
+        else static assert("Operation system not supported");
     }
-
 }
