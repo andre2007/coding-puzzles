@@ -65,3 +65,17 @@ private struct Output
 {
     int maxAmount;
 }
+
+unittest
+{   
+    import cp.tests.common;
+    
+    executeTestcase(RobberyOptimisation.metadata.name, "example", (i, o, e) {
+        int houses = i.readln().strip().to!int;
+        assert (houses == 5);
+        
+        int[] houseValues = houses.iota.map!(n => i.readln().strip().to!int).array;
+        assert (houseValues == [1, 15, 10, 13, 16]);
+        o.writeln("31");
+    }); 
+}

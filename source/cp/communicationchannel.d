@@ -35,7 +35,7 @@ class StdioChannel : IfCommunicationChannel
     
     void sentData(string data)
     {
-        _processPipes.stdin.writeln(data);
+        _processPipes.stdin.write(data);
     }
     
     void flush()

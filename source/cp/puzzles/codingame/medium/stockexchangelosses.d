@@ -51,11 +51,25 @@ class StockExchangeLosses
 private struct Input
 {
     int num;
-    @LengthRef("num")
+    @Join @LengthRef("num")
     int[] values;
 }
 
 private struct Output
 {
     int answer;
+}
+
+unittest
+{   
+    import cp.tests.common;
+    
+    executeTestcase(StockExchangeLosses.metadata.name, "testcase1", (i, o, e) {
+        int num = i.readln().strip().to!int;
+        assert (num == 6);
+
+        int[] values = i.readln().strip().split(" ").map!(n => n.to!int).array;
+        assert(values == [3, 2, 4, 2, 1, 5]);
+        o.writeln("-3");
+    }); 
 }

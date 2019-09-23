@@ -1,5 +1,7 @@
 # Coding Puzzles
 
+Play the puzzles from https://www.codingame.com with your favorite programming language!
+
 See [PUZZLES.md](PUZZLES.md) for list of available puzzles.
 
 ## Onboarding sample

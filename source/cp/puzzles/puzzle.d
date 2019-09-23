@@ -12,6 +12,11 @@ struct Testcase
     string name;
 }
 
+struct Join
+{
+    string separator = " ";
+}
+
 struct Length
 {
     size_t value;
@@ -34,6 +39,10 @@ struct Parameter
     string type;
     size_t length;
     string lengthRef;
+    bool isComplex;
+    Parameter[] fields;
+    bool join;
+    string joinSeparator;
 }
 
 struct PuzzleMetadata
@@ -82,7 +91,7 @@ mixin template PuzzleBase(Input, Output)
         Puzzle puzzle;
         puzzle.className = this.classinfo.name;
         puzzle.create = &create;
-        puzzle.testcase = &testcase;
+        puzzle.executeTestcase = &testcase;
         puzzle.testcases = getTestcases!(typeof(this))();
         puzzle.inputParameters = getParameters!Input();
         puzzle.outputParameters = getParameters!Output();
@@ -123,7 +132,7 @@ mixin template PuzzleBase(Input, Output)
         }
 
         void validate(Output expected)
-        {
+        {           
             if (expected != output)
             {
                 throw new Exception("Validation failed");
@@ -152,25 +161,45 @@ mixin template PuzzleBase(Input, Output)
         }
         return play(input);
     }
-
-    PlayResult play(Input input)
+    
+    private void sendData(T)(T t)
     {
-        static foreach(fieldName; __traits(allMembers, Input))
+        static foreach(fieldName; __traits(allMembers, T))
         {{
-            alias field = __traits(getMember, input, fieldName);
+            alias field = __traits(getMember, t, fieldName);
+            bool join;
+            string joinSeparator;
+            
+            static if (hasUDA!(__traits(getMember, T, fieldName), Join ))
+            {
+                join = true;
+              
+                static if (is (getUDAs!(__traits(getMember, T, fieldName), Join)[0]))
+                {
+                    joinSeparator = Join().separator;
+                } else {
+                    joinSeparator = getUDAs!(__traits(getMember, T, fieldName), Join)[0].separator;
+                }
+            }
             
             static if(is(typeof(field) == int) || is(typeof(field) == uint) ||
                 is(typeof(field) == long) || is(typeof(field) == ulong))
             {
-                string value = to!string(__traits(getMember, input, fieldName));
+                string value = to!string(__traits(getMember, t, fieldName));
                 _session.logger.puzzleIn("Sent input '" ~ fieldName ~ "' value '" ~ value ~ "'");
-                _communicationChannel.sentData(value);
+                if (join)
+                    _communicationChannel.sentData(value ~ joinSeparator);
+                else
+                    _communicationChannel.sentData(value ~ "\n");
             } 
             else static if(is(typeof(field) == string))
             {
-                string value = __traits(getMember, input, fieldName);
+                string value = __traits(getMember, t, fieldName);
                 _session.logger.puzzleIn("Sent input '" ~ fieldName ~ "' value '" ~ value ~ "'");
-                _communicationChannel.sentData(value);
+                if (join)
+                    _communicationChannel.sentData(value ~ joinSeparator);
+                else
+                    _communicationChannel.sentData(value ~ "\n");
             }
             else static if (isArray!(typeof(field)))
             {
@@ -181,61 +210,111 @@ mixin template PuzzleBase(Input, Output)
                     is(BaseTypeOf!(typeof(field)) == long) ||
                     is(BaseTypeOf!(typeof(field)) == ulong))
                 {
-                    foreach(i; __traits(getMember, input, fieldName))
+                    foreach(i; __traits(getMember, t, fieldName))
                     {
                         string value = to!string(i);
                         _session.logger.puzzleIn("  Sent value '" ~ value ~ "'");
-                        _communicationChannel.sentData(value);
+                        if (join)
+                            _communicationChannel.sentData(value ~ joinSeparator);
+                        else
+                            _communicationChannel.sentData(value ~ "\n");
                     }
+                    
+                    if (join)
+                        _communicationChannel.sentData("\n");
 
                 }
                 else static if(is(BaseTypeOf!(typeof(field)) == string))
                 {
-                    foreach(value; __traits(getMember, input, fieldName))
+                    foreach(value; __traits(getMember, t, fieldName))
                     {
                         _session.logger.puzzleIn("  Sent value '" ~ value ~ "'");
-                        _communicationChannel.sentData(value);
+                        if (join)
+                            _communicationChannel.sentData(value ~ joinSeparator);
+                        else
+                            _communicationChannel.sentData(value ~ "\n");
+                    }
+                    
+                    if (join)
+                        _communicationChannel.sentData("\n");
+                }
+                else static if(is(BaseTypeOf!(typeof(field)) == struct))
+                {
+                    foreach(r; __traits(getMember, t, fieldName))
+                    {
+                        sendData(r);
                     }
                 }
                 else
                 {
-                    static assert(false, "Unsupported type: " 
-                        ~ typeof(field).stringof);
+                    static assert(false, "Unsupported type: " ~ typeof(field).stringof);
                 }
             }
             else
             {
-                static assert(false, "Unsupported type: " 
-                    ~ typeof(field).stringof);
+                static assert(false, "Unsupported type: " ~ typeof(field).stringof);
             }
         }}
-
-        _communicationChannel.flush();
+    }
+    
+    private T receiveOutput(T)()
+    {
+        T t;
         
-        import core.thread: Thread;
-        import core.time: msecs;
-        Thread.sleep(200.msecs);
-
-        Output output;
-
-        static foreach(fieldName; __traits(allMembers, Output))
+        bool isJoinedField;
+        string[] joinBuffer;
+        
+        static foreach(fieldName; __traits(allMembers, T))
         {{
-            alias field = __traits(getMember, output, fieldName);
+            alias field = __traits(getMember, t, fieldName);
+            bool join;
+            string joinSeparator;
+            
+            static if (hasUDA!(__traits(getMember, T, fieldName), Join ))
+            {
+                join = true;
+              
+                static if (is (getUDAs!(__traits(getMember, T, fieldName), Join)[0]))
+                {
+                    joinSeparator = Join().separator;
+                } else {
+                    joinSeparator = getUDAs!(__traits(getMember, T, fieldName), Join)[0].separator;
+                }
+            }
             
             static if(is(typeof(field) == int) || is(typeof(field) == uint) ||
                 is(typeof(field) == long) || is(typeof(field) == ulong))
             {
-                string value = _communicationChannel.receiveData();
-                _session.logger.puzzleOut("Receive output '" ~ fieldName ~ "' value '" ~ value ~ "'");
-                enforce(value != "", "Cannot read output for field '" ~ fieldName ~ "'");
-                __traits(getMember, output, fieldName) = to!(typeof(__traits(getMember, output, fieldName)))(value);
+                if (join && !isJoinedField)
+                {
+                    string value = _communicationChannel.receiveData();
+                    _session.logger.puzzleOut("Receive output '" ~ fieldName ~ "' value '" ~ value ~ "'");
+                    enforce(value != "", "Cannot read output for field '" ~ fieldName ~ "'");
+                    
+                    joinBuffer = value.split(joinSeparator);
+                    __traits(getMember, t, fieldName) = to!(typeof(__traits(getMember, t, fieldName)))(joinBuffer[0]);
+                    joinBuffer = joinBuffer[1..$];
+                }
+                else if (isJoinedField)
+                {
+                    __traits(getMember, t, fieldName) = to!(typeof(__traits(getMember, t, fieldName)))(joinBuffer[0]);
+                    joinBuffer = joinBuffer[1..$];
+                }
+                else
+                {
+                    string value = _communicationChannel.receiveData();
+                    _session.logger.puzzleOut("Receive output '" ~ fieldName ~ "' value '" ~ value ~ "'");
+                    enforce(value != "", "Cannot read output for field '" ~ fieldName ~ "'");
+                    
+                    __traits(getMember, t, fieldName) = to!(typeof(__traits(getMember, t, fieldName)))(value);
+                }
             }
             else static if(is(typeof(field) == string))
             {
                 string value = _communicationChannel.receiveData();
                 _session.logger.puzzleOut("Receive output '" ~ fieldName ~ "' value '" ~ value ~ "'");
                 enforce(value != "", "Cannot read output for field '" ~ fieldName ~ "'");
-                __traits(getMember, output, fieldName) = value;
+                __traits(getMember, t, fieldName) = value;
             }
             else static if (isArray!(typeof(field)))
             {
@@ -258,22 +337,35 @@ mixin template PuzzleBase(Input, Output)
                             values = values[1..$];
                             _session.logger.puzzleOut("Receive array output '" ~ fieldName ~ "' value '" ~ value ~ "'");
                             // enforce(value != "", "Cannot read output for field '" ~ fieldName ~ "'");
-                            __traits(getMember, output, fieldName) ~= value;
+                            __traits(getMember, t, fieldName) ~= value;
                         }
                     }
                 }
                 else
                 {
-                    static assert(false, "Unsupported type: " 
-                        ~ typeof(field).stringof);
+                    static assert(false, "Unsupported type: " ~ typeof(field).stringof);
                 }
             }
             else
             {
-                static assert(false, "Unsupported type: " 
-                        ~ typeof(field).stringof);
+                static assert(false, "Unsupported type: " ~ typeof(field).stringof);
             }
+            
+            isJoinedField = join;
         }}
+        
+        return t;
+    }
+        
+    PlayResult play(Input input)
+    {
+        sendData(input);
+        _communicationChannel.flush();
+
+        import core.thread: Thread;
+        import core.time: msecs;
+        Thread.sleep(200.msecs);
+        Output output = receiveOutput!Output();
 
         return PlayResult(output);
     }
@@ -321,7 +413,7 @@ struct Puzzle
 {
     string className;
     Object function() create;
-    void delegate(Object o, string test) testcase;
+    void delegate(Object o, string test) executeTestcase;
     void delegate(Object o, IfCommunicationChannel communicationChannel) setCommunicationChannel;
     void delegate(Object o, IfSession session) setSession;
     TestcaseMetadata[] testcases;
@@ -374,7 +466,7 @@ template BaseTypeOf(T) {
 
 Parameter[] getParameters(T)()
 {
-    import std.traits : isStaticArray, isDynamicArray;
+    import std.traits : isArray, isDynamicArray;
 
     Parameter[] results;
     
@@ -382,50 +474,65 @@ Parameter[] getParameters(T)()
     {{
         alias field = __traits(getMember, T, fieldName);
 
-        static if(is(typeof(field) == int))
+        Parameter parameter;
+        parameter.name = fieldName;
+        
+        static if (hasUDA!(__traits(getMember, T, fieldName), Join ))
         {
-            results ~= Parameter(fieldName, "int" , 1);
-        } 
-        else static if(is(typeof(field) == string))
-        {
-            results ~= Parameter(fieldName, "string", 1);
-        }
-        else static if(isStaticArray!(typeof(field)))
-        {
-            static if(is(BaseTypeOf!(typeof(field)) == int))
+            parameter.join = true;
+          
+            static if (is (getUDAs!(__traits(getMember, T, fieldName), Join)[0]))
             {
-                results ~= Parameter(fieldName, "int", field.length);
-            }
-            else static if(is(BaseTypeOf!(typeof(field)) == string))
-            {
-                results ~= Parameter(fieldName, "string", field.length);
-            }
-        }
-        else static if(isDynamicArray!(typeof(field)))
-        {
-            size_t length = 1;
-            string lengthRef;
-            
-            static if(hasUDA!(field, Length))
-            {
-                length = getUDAs!(field, Length)[0].value;
-            }
-            else static if(hasUDA!(field, LengthRef))
-            {
-                length = 0;
-                lengthRef = getUDAs!(field, LengthRef)[0].name;
-            }
-            
-            static if(is(BaseTypeOf!(typeof(field)) == int))
-            {
-                results ~= Parameter(fieldName, "int", length, lengthRef);
-            }
-            else static if(is(BaseTypeOf!(typeof(field)) == string))
-            {
-                results ~= Parameter(fieldName, "string", length, lengthRef);
+                parameter.joinSeparator = Join().separator;
+            } else {
+                parameter.joinSeparator = getUDAs!(__traits(getMember, T, fieldName), Join)[0].separator;
             }
         }
 
+        static if(is(typeof(field) == int) || is(typeof(field) == uint) || is(typeof(field) == long) || is(typeof(field) == ulong) || is(typeof(field) == string))
+        {
+            parameter.type = typeof(field).stringof;
+            parameter.length = 1;
+        }
+        else static if(isArray!(typeof(field)))
+        {
+            static if(isDynamicArray!(typeof(field)))
+            {
+                static if(hasUDA!(field, Length))
+                {
+                    parameter.length = getUDAs!(field, Length)[0].value;
+                }
+                else static if(hasUDA!(field, LengthRef))
+                {
+                    parameter.length = 0;
+                    parameter.lengthRef = getUDAs!(field, LengthRef)[0].name;
+                }
+            }
+            else
+            {
+                parameter.length = field.length;
+            }
+            
+            static if(is(BaseTypeOf!(typeof(field)) == int) || is(BaseTypeOf!(typeof(field)) == uint) || is(BaseTypeOf!(typeof(field)) == long) || is(BaseTypeOf!(typeof(field)) == ulong) || is(BaseTypeOf!(typeof(field)) == string))
+            {
+                parameter.type = BaseTypeOf!(typeof(field)).stringof;
+            }
+            else static if(is(BaseTypeOf!(typeof(field)) == struct))
+            {
+                parameter.isComplex = true;
+                parameter.fields = getParameters!(BaseTypeOf!(typeof(field)));
+            }
+            else
+            {
+                static assert(false, "Unsupported type: " ~ typeof(field).stringof);
+            }
+        }
+        else
+        {
+            static assert(false, "Unsupported type: " ~ typeof(field).stringof);
+        }
+        
+        results ~= parameter;
     }}
     return results;
 }

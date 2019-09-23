@@ -1,4 +1,4 @@
-name: CI
+name: DLang
 
 on: [push]
 
@@ -9,7 +9,8 @@ jobs:
     
     steps:
     - uses: actions/checkout@v1
-    - name: Install dmd
-      run: curl -fsS https://dlang.org/install.sh | bash -s dmd-2.088.0
-    - name: Build dub package
-      run: source ~/dlang/dmd-2.088.0/activate && dub build
+    - uses: mihails-strasuns/setup-dlang@v0
+    - name: Build
+      run: dub build
+    - name: Run tests
+      run: dub test

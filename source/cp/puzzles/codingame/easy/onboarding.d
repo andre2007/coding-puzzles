@@ -47,3 +47,20 @@ private struct Output
 {
     string enemy;
 }
+
+unittest
+{   
+    import cp.tests.common;
+    
+    executeTestcase(Onboarding.metadata.name, "imminentDanger", (i, o, e) {
+       while (true)
+       {
+           string enemy1 = i.readln().strip();
+           int dist1 = i.readln().strip().to!int;
+           string enemy2 = i.readln().strip();
+           int dist2 = i.readln().strip().to!int;
+           o.writeln(dist1 < dist2 ? enemy1 : enemy2);
+           o.flush();
+       }
+    }); 
+}

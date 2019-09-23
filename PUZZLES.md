@@ -7,6 +7,10 @@ Available puzzles:
 
   https://www.codingame.com/training/easy/the-descent
 
+- cg.medium.lets-go-to-the-cinema
+
+  https://www.codingame.com/training/medium/lets-go-to-the-cinema
+
 - cg.medium.robbery-optimisation
 
   https://www.codingame.com/training/medium/robbery-optimisation
