@@ -1,9 +1,9 @@
 {
     "authors": [
-        "Andre Pany"
+        "André Pany"
     ],
-    "copyright": "Copyright © 2019, Andre Pany",
-    "description": "Coding Puzzles",
+    "copyright": "Copyright © 2019, André Pany",
+    "description": "Play the puzzles from https://www.codingame.com with your favorite programming language!",
     "license": "BSL-1.0",
     "name": "coding-puzzles",
     "configurations": [{
