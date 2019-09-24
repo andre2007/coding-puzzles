@@ -7,6 +7,10 @@ Available puzzles:
 
   https://www.codingame.com/training/easy/the-descent
 
+- cg.medium.bender-episode-1
+
+  https://www.codingame.com/training/medium/bender-episode-1
+
 - cg.medium.lets-go-to-the-cinema
 
   https://www.codingame.com/training/medium/lets-go-to-the-cinema

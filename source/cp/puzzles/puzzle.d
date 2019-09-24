@@ -203,7 +203,7 @@ mixin template PuzzleBase(Input, Output)
             }
             else static if (isArray!(typeof(field)))
             {
-                _session.logger.puzzleIn("Sent array input '" ~ fieldName);
+                _session.logger.puzzleIn("Sent array input '" ~ fieldName ~ "'");
                 
                 static if(is(BaseTypeOf!(typeof(field)) == int) || 
                     is(BaseTypeOf!(typeof(field)) == uint) ||
@@ -213,7 +213,7 @@ mixin template PuzzleBase(Input, Output)
                     foreach(i; __traits(getMember, t, fieldName))
                     {
                         string value = to!string(i);
-                        _session.logger.puzzleIn("  Sent value '" ~ value ~ "'");
+                        _session.logger.puzzleIn("    '" ~ value ~ "'");
                         if (join)
                             _communicationChannel.sentData(value ~ joinSeparator);
                         else
@@ -228,7 +228,7 @@ mixin template PuzzleBase(Input, Output)
                 {
                     foreach(value; __traits(getMember, t, fieldName))
                     {
-                        _session.logger.puzzleIn("  Sent value '" ~ value ~ "'");
+                        _session.logger.puzzleIn("    '" ~ value ~ "'");
                         if (join)
                             _communicationChannel.sentData(value ~ joinSeparator);
                         else
@@ -320,23 +320,22 @@ mixin template PuzzleBase(Input, Output)
             {
                 static if(is(BaseTypeOf!(typeof(field)) == string))
                 {
-                    import std.ascii : newline;
-                    
                     string[] values;
+
+                    _session.logger.puzzleOut("Receive array output '" ~ fieldName ~ "', expected length " ~ outputProperty(fieldName).length.text);
 
                     foreach(n; 0..outputProperty(fieldName).length)
                     {
                         if (values.length == 0)
                         {
-                             values = _communicationChannel.receiveData().split(newline);
+                             values = _communicationChannel.receiveData().split("\n").map!(s => s.strip).array;
                         }
                         
                         if (values.length > 0)
                         {
                             string value = values[0];
                             values = values[1..$];
-                            _session.logger.puzzleOut("Receive array output '" ~ fieldName ~ "' value '" ~ value ~ "'");
-                            // enforce(value != "", "Cannot read output for field '" ~ fieldName ~ "'");
+                            _session.logger.puzzleOut("    '" ~ value ~ "'");
                             __traits(getMember, t, fieldName) ~= value;
                         }
                     }
